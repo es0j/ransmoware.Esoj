@@ -1,3 +1,4 @@
 # ransmoware.Esoj
 
-ele faz xor na porra.
+ele faz xor na parada toda
+
